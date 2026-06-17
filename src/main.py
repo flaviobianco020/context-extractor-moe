@@ -79,20 +79,28 @@ def train_router():
 # 3. AVVIO DELL'INFERENZA END-TO-END
 # =====================================================================
 if __name__ == "__main__":
-    # Fase 1: Allena il router se non lo hai già fatto
+    # Fase 1: Allena il router
     train_router()
     print("-" * 50)
     
-    # Fase 2: Inizializza la pipeline MoE caricando i pesi appena salvati
+    # Fase 2: Inizializza la pipeline MoE
     moe_pipeline = MoEPipeline(input_dim=16, router_weights_path="src/models/router_weights.pth")
     
-    # Fase 3: Testiamo un'inferenza finta di un pacchetto AUDIO
-    # Creiamo metadati compatibili con l'esperto audio (Vedi regole sopra: dimensione ~2.0, porta 5004)
+    # Fase 3: Testiamo un'inferenza Semantica su un pacchetto audio reale simulato
+    print("\n🔮 Test di inferenza Semantica su un pacchetto simulato...")
+    
+    # 1 secondo di audio simulato (frequenza 16000Hz) generato con rumore casuale numpy
+    mock_audio_payload = np.random.uniform(-1.0, 1.0, 16000).astype(np.float32) 
     sample_audio_metadata = [2.1, 5004.0, 0.1, -0.5, 0.0, 1.2, -0.9, 0.4, 0.3, -0.1, 0.0, 1.1, 0.2, -0.4, 0.5, -0.2]
     
-    # Un array audio finto a 16kHz (un secondo di silenzio per testare Whisper)
-    mock_audio_payload = np.zeros(16000, dtype=np.float32)
-    
-    print("\n🔮 Test di inferenza end-to-end su un pacchetto simulato...")
     output = moe_pipeline.process_packet(sample_audio_metadata, mock_audio_payload)
-    print("✅ Risultato Pipeline:", output)
+    
+    # Analisi quantitativa dei Risultati Semantici per la trasmissione
+    print("\n📊 --- REPORT DI COMUNICAZIONE SEMANTICA ---")
+    print(f"Tipo di Esperto Attivato: {output['expert'].upper()}")
+    print(f"Dimensione del Payload Originale: {output['original_bytes']} Byte")
+    print(f"Dimensione delle Caratteristiche Semantiche da Trasmettere: {output['bytes']} Byte")
+    
+    compression_ratio = output['original_bytes'] / max(1, output['bytes'])
+    print(f"Rapporto di Compressione Semantica: {compression_ratio:.2f}x")
+    print(f"Dati estratti pronti per il Canale: {str(output['semantic_data'])[:60]}...")
