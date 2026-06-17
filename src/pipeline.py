@@ -1,6 +1,6 @@
 # src/pipeline.py
 import torch
-from src.models.router.py import PacketRouter  # Se hai router.py dentro src/models
+from src.models.router import PacketRouter # Se hai router.py dentro src/models
 # Nota: se l'import sopra dà errore, usa: from src.models.router import PacketRouter
 from src.models.experts import TextExpert, AudioExpert, VideoExpert
 
