@@ -1,0 +1,21 @@
+# Ambienti virtuali Python
+venv/
+.venv/
+env/
+
+# Cache di Python
+__pycache__/
+*.pyc
+
+# Cache dei modelli di Hugging Face e pesi locali
+.cache/
+models/
+*.pt
+*.pth
+*.safetensors
+*.bin
+
+# File di sistema e IDE
+.DS_Store
+.vscode/
+.idea/
