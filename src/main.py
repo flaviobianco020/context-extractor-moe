@@ -1,5 +1,6 @@
 # src/main.py
 import torch
+import os
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
@@ -80,35 +81,51 @@ def train_router():
 # 3. AVVIO DELL'INFERENZA END-TO-END
 # =====================================================================
 if __name__ == "__main__":
-    # Fase 1: Allena il router
+    # 1. Allena il router sui metadati di rete simulati
     train_router()
     print("-" * 50)
     
-    # Fase 2: Inizializza la pipeline MoE
+    # 2. Inizializza la pipeline MoE con i pesi del router
     moe_pipeline = MoEPipeline(input_dim=16, router_weights_path="src/models/router_weights.pth")
     
-    # =====================================================================
-    # FASE 3: TEST DI INFERENZA SEMANTICA - CASO VIDEO
-    # =====================================================================
-    print("\n🔮 Test di inferenza Semantica su un pacchetto VIDEO simulato...")
+    # 3. CONFIGURAZIONE DEI PERCORSI PER I FILE REALI
+    FOTO_REAL_PATH = "data/raw/foto_test.jpg"
     
-    # Generiamo un frame video finto in alta risoluzione (1080p, Full HD RGB)
-    # Un'immagine 1920x1080 a 3 canali colore (RGB)
-    random_pixels = np.random.randint(0, 255, (1080, 1920, 3), dtype=np.uint8)
-    mock_video_frame = Image.fromarray(random_pixels)
-    
-    # Generiamo i metadati di rete affinché il Router capisca che è un VIDEO
-    # (Vedi le regole definite nel training: dimensione grande ~10.0, porta 1935)
-    sample_video_metadata = [11.4, 1935.0, 0.9, -0.1, 0.5, 2.2, -0.1, 0.8, 0.1, -0.5, 0.2, 1.9, 0.7, -0.1, 0.1, -0.6]
-    
-    output = moe_pipeline.process_packet(sample_video_metadata, mock_video_frame)
-    
-    # Analisi quantitativa dei consumi sul canale per l'ingegneria delle comunicazioni
-    print("\n📊 --- REPORT DI COMUNICAZIONE SEMANTICA (VIDEO) ---")
-    print(f"Tipo di Esperto Attivato: {output['expert'].upper()}")
-    print(f"Dimensione del Frame Originale (Grezzo 1080p): {output['original_bytes']} Byte (~{output['original_bytes']/1e6:.2f} MB)")
-    print(f"Dimensione delle Caratteristiche Semantiche ViT da Trasmettere: {output['bytes']} Byte (~{output['bytes']/1024:.2f} KB)")
-    
-    compression_ratio = output['original_bytes'] / max(1, output['bytes'])
-    print(f"Rapporto di Compressione Semantica sul singolo Frame: {compression_ratio:.2f}x")
-    print(f"Dati estratti pronti per il Canale: {str(output['semantic_data'])[:60]}...")
+    print("\n📸 --- TEST SEMANTICO SU FOTO REALE ---")
+    if not os.path.exists(FOTO_REAL_PATH):
+        print(f"⚠️ ATTENZIONE: Inserisci una foto in {FOTO_REAL_PATH} per fare il test reale!")
+    else:
+        # Carica la vera immagine dal disco tramite Pillow
+        real_image = Image.open(FOTO_REAL_PATH).convert("RGB")
+        
+        # Simuliamo i metadati di rete associati a un trasferimento d'immagine (instradato come VIDEO/IMAGE)
+        video_metadata = [12.0, 1935.0, 0.5, -0.2, 0.1, 1.5, -0.4, 0.7, 0.2, -0.1, 0.0, 1.2, 0.4, -0.2, 0.3, -0.5]
+        
+        # Forward pass nell'architettura MoE
+        output_foto = moe_pipeline.process_packet(video_metadata, real_image)
+        
+        # 4. PROTOCOLLO DI VALIDAZIONE DELL'OUTPUT SEMANTICO
+        print("\n🔍 --- PROTOCOLLO DI VALIDAZIONE ---")
+        semantic_data = output_foto["semantic_data"]
+        
+        # Controllo 1: Integrità della forma nello spazio latente
+        is_length_valid = len(semantic_data) == 768
+        # Controllo 2: Assenza di corruzione dei dati (NaN o valori nulli)
+        is_data_corrupted = np.isnan(semantic_data).any()
+        
+        print(f"1. Controllo Lunghezza Spazio Latente (Atteso 768): {len(semantic_data)} -> {'✅ VALIDO' if is_length_valid else '❌ INVALIDO'}")
+        print(f"2. Controllo Corruzione Dati (Assenza di NaN): {'✅ SUPERATO' if not is_data_corrupted else '❌ FALLITO'}")
+        
+        # Calcolo dell'efficienza di trasmissione sul canale
+        original_size_mb = output_foto['original_bytes'] / 1e6
+        transmitted_size_kb = output_foto['bytes'] / 1024
+        compression_ratio = output_foto['original_bytes'] / max(1, output_foto['bytes'])
+        
+        print(f"3. Dimensione Immagine Grezza Origine: {original_size_mb:.2f} MB")
+        print(f"4. Dimensione Vettore Semantico Estratto: {transmitted_size_kb:.2f} KB")
+        print(f"🏆 Rapporto di Compressione Semantica: {compression_ratio:.2f}x")
+        
+        if is_length_valid and not is_data_corrupted:
+            print("\n🟢 VERDETTO FINALE: L'OUTPUT È VALIDO PER LA TRASMISSIONE SEMANTICA!")
+        else:
+            print("\n🔴 VERDETTO FINALE: OUTPUT NON VALIDO. CONTROLLARE L'INPUT O IL BACKBONE.")
