@@ -5,6 +5,7 @@ import torch.optim as optim
 import numpy as np
 from src.models.router import PacketRouter
 from src.pipeline import MoEPipeline
+from PIL import Image
 
 # =====================================================================
 # 1. GENERAZIONE DI UN DATASET DI RETE SIMULATO
@@ -86,21 +87,28 @@ if __name__ == "__main__":
     # Fase 2: Inizializza la pipeline MoE
     moe_pipeline = MoEPipeline(input_dim=16, router_weights_path="src/models/router_weights.pth")
     
-    # Fase 3: Testiamo un'inferenza Semantica su un pacchetto audio reale simulato
-    print("\n🔮 Test di inferenza Semantica su un pacchetto simulato...")
+    # =====================================================================
+    # FASE 3: TEST DI INFERENZA SEMANTICA - CASO VIDEO
+    # =====================================================================
+    print("\n🔮 Test di inferenza Semantica su un pacchetto VIDEO simulato...")
     
-    # 1 secondo di audio simulato (frequenza 16000Hz) generato con rumore casuale numpy
-    mock_audio_payload = np.random.uniform(-1.0, 1.0, 16000).astype(np.float32) 
-    sample_audio_metadata = [2.1, 5004.0, 0.1, -0.5, 0.0, 1.2, -0.9, 0.4, 0.3, -0.1, 0.0, 1.1, 0.2, -0.4, 0.5, -0.2]
+    # Generiamo un frame video finto in alta risoluzione (1080p, Full HD RGB)
+    # Un'immagine 1920x1080 a 3 canali colore (RGB)
+    random_pixels = np.random.randint(0, 255, (1080, 1920, 3), dtype=np.uint8)
+    mock_video_frame = Image.fromarray(random_pixels)
     
-    output = moe_pipeline.process_packet(sample_audio_metadata, mock_audio_payload)
+    # Generiamo i metadati di rete affinché il Router capisca che è un VIDEO
+    # (Vedi le regole definite nel training: dimensione grande ~10.0, porta 1935)
+    sample_video_metadata = [11.4, 1935.0, 0.9, -0.1, 0.5, 2.2, -0.1, 0.8, 0.1, -0.5, 0.2, 1.9, 0.7, -0.1, 0.1, -0.6]
     
-    # Analisi quantitativa dei Risultati Semantici per la trasmissione
-    print("\n📊 --- REPORT DI COMUNICAZIONE SEMANTICA ---")
+    output = moe_pipeline.process_packet(sample_video_metadata, mock_video_frame)
+    
+    # Analisi quantitativa dei consumi sul canale per l'ingegneria delle comunicazioni
+    print("\n📊 --- REPORT DI COMUNICAZIONE SEMANTICA (VIDEO) ---")
     print(f"Tipo di Esperto Attivato: {output['expert'].upper()}")
-    print(f"Dimensione del Payload Originale: {output['original_bytes']} Byte")
-    print(f"Dimensione delle Caratteristiche Semantiche da Trasmettere: {output['bytes']} Byte")
+    print(f"Dimensione del Frame Originale (Grezzo 1080p): {output['original_bytes']} Byte (~{output['original_bytes']/1e6:.2f} MB)")
+    print(f"Dimensione delle Caratteristiche Semantiche ViT da Trasmettere: {output['bytes']} Byte (~{output['bytes']/1024:.2f} KB)")
     
     compression_ratio = output['original_bytes'] / max(1, output['bytes'])
-    print(f"Rapporto di Compressione Semantica: {compression_ratio:.2f}x")
+    print(f"Rapporto di Compressione Semantica sul singolo Frame: {compression_ratio:.2f}x")
     print(f"Dati estratti pronti per il Canale: {str(output['semantic_data'])[:60]}...")
