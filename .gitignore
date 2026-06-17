@@ -19,3 +19,7 @@ models/
 .DS_Store
 .vscode/
 .idea/
+# Blocca i file multimediali pesanti inseriti nei test reali
+data/raw/*.mp4
+data/raw/*.jpg
+data/raw/*.png
