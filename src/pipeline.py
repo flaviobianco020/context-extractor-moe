@@ -23,6 +23,7 @@ class MoEPipeline:
             router_output = self.router(tensor_meta)
             selected_expert = torch.argmax(router_output, dim=1).item()
             
+            
             if selected_expert == 0:
                 print("🔀 Router: Assegnato all'esperto TESTO")
                 metrics = self.text_expert.extract_context(raw_payload)
